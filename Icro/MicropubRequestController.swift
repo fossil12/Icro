@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import IcroKit
 import Alamofire
 
 class MicropubRequestController {
@@ -141,24 +142,6 @@ extension URL {
     }
 }
 
-extension String {
-    public func stringByAddingPercentEncodingForFormData(plusForSpace: Bool=false) -> String? {
-        let unreserved = "*-._"
-        let allowedCharacterSet = NSMutableCharacterSet.alphanumeric()
-        allowedCharacterSet.addCharacters(in: unreserved)
-
-        if plusForSpace {
-            allowedCharacterSet.addCharacters(in: " ")
-        }
-
-        var encoded = addingPercentEncoding(withAllowedCharacters: allowedCharacterSet as CharacterSet)
-        if plusForSpace {
-            encoded = encoded?.replacingOccurrences(of: " ", with: "+")
-        }
-        return encoded
-    }
-}
-
 extension UIImage {
     var jpeg: Data? {
         return UIImageJPEGRepresentation(self, 1)   // QUALITY min = 0 / max = 1
@@ -177,5 +160,21 @@ extension MediaEndpoint {
         guard let endpointString = dictionary["media-endpoint"] as? String,
         let url = URL(string: endpointString) else { return nil }
         self.mediaEndpoint = url
+    }
+}
+
+extension MediaEndpoint {
+    static func get() -> Resource<MediaEndpoint> {
+        guard let url = URL(string: microblogMedia) else {
+            fatalError()
+        }
+
+        return Resource<MediaEndpoint>(url: url, parseJSON: { json in
+            guard let json = json as? JSONDictionary else {
+                return nil
+            }
+
+            return MediaEndpoint(dictionary: json)
+        })
     }
 }

@@ -5,7 +5,7 @@
 
 import Foundation
 
-typealias JSONDictionary = [String: Any]
+public typealias JSONDictionary = [String: Any]
 
 let itemURL = URL(string: "https://micro.blog/posts/all")!
 let photosURL = URL(string: "https://micro.blog/posts/photos")!
@@ -22,15 +22,15 @@ let followURLString = "https://micro.blog/users/follow?username="
 let unfollowURLString = "https://micro.blog/users/unfollow?username="
 let followingURLString = "http://micro.blog/users/following/"
 
-let microblogMedia = "https://micro.blog/micropub?q=config"
+public let microblogMedia = "https://micro.blog/micropub?q=config"
 
-struct Resource<A> {
+public struct Resource<A> {
     let url: URL
     let httpMethod: String
     let parse: (Data) -> Result<A>
 }
 
-enum NetworkingError: Error {
+public enum NetworkingError: Error {
     case cannotParse
     case wordPressURLError
     case micropubURLError
@@ -38,11 +38,11 @@ enum NetworkingError: Error {
     case invalidInput
 }
 
-enum Result<A> {
+public enum Result<A> {
     case error(error: Error)
     case result(value: A)
 
-    var value: A? {
+    public var value: A? {
         switch self {
         case .error:
             return nil
@@ -51,7 +51,7 @@ enum Result<A> {
         }
     }
 
-    init(value: A?, error: Error) {
+    public init(value: A?, error: Error) {
         if let value = value {
             self = .result(value: value)
         } else {
@@ -60,7 +60,7 @@ enum Result<A> {
     }
 }
 
-extension Resource {
+public extension Resource {
     init(url: URL, httpMethod: String = "GET", parseJSON: @escaping (Any) -> A?) {
         self.url = url
         self.parse = { data in
@@ -72,7 +72,7 @@ extension Resource {
     }
 }
 
-extension Item {
+public extension Item {
     static func allCached(completion: @escaping (ItemResponse?) -> Void) {
         DispatchQueue.global(qos: .background).async {
             let response = CacheStorage.retrieve("homestream", from: CacheStorage.Directory.caches, as: ItemResponse.self)
@@ -227,7 +227,7 @@ extension Item {
     }
 }
 
-extension Author {
+public extension Author {
     func followResource() -> Resource<Empty> {
         guard let username = username else {
             fatalError()
@@ -263,24 +263,10 @@ extension Author {
     }
 }
 
-extension MediaEndpoint {
-    static func get() -> Resource<MediaEndpoint> {
-        guard let url = URL(string: microblogMedia) else {
-            fatalError()
-        }
+public final class Webservice {
+    public init() { }
 
-        return Resource<MediaEndpoint>(url: url, parseJSON: { json in
-            guard let json = json as? JSONDictionary else {
-                return nil
-            }
-
-            return MediaEndpoint(dictionary: json)
-        })
-    }
-}
-
-final class Webservice {
-    func load<A: Codable>(resource: Resource<A>, bearer: Bool = false, completion: @escaping (Result<A>) -> Void) {
+    public func load<A: Codable>(resource: Resource<A>, bearer: Bool = false, completion: @escaping (Result<A>) -> Void) {
         var request = URLRequest(url: resource.url)
         request.httpMethod = resource.httpMethod
         if bearer {
@@ -309,5 +295,23 @@ extension URLComponents {
         self.host = host
         self.path = path
         self.queryItems = queryItems
+    }
+}
+
+extension String {
+    public func stringByAddingPercentEncodingForFormData(plusForSpace: Bool=false) -> String? {
+        let unreserved = "*-._"
+        let allowedCharacterSet = NSMutableCharacterSet.alphanumeric()
+        allowedCharacterSet.addCharacters(in: unreserved)
+
+        if plusForSpace {
+            allowedCharacterSet.addCharacters(in: " ")
+        }
+
+        var encoded = addingPercentEncoding(withAllowedCharacters: allowedCharacterSet as CharacterSet)
+        if plusForSpace {
+            encoded = encoded?.replacingOccurrences(of: " ", with: "+")
+        }
+        return encoded
     }
 }

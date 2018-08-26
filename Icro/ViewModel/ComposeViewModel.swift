@@ -5,6 +5,7 @@
 
 import Foundation
 import wpxmlrpc
+import IcroKit
 
 final class ComposeViewModel {
     struct Image {
